@@ -4,7 +4,6 @@ using Lox.Core.Tokens.Keywords;
 using Lox.Core.Tokens.Literals;
 using Lox.Core.Tokens.Operators.Binary;
 using Lox.Core.Tokens.Operators.Unary;
-using String = Lox.Core.Tokens.Literals.String;
 
 namespace Lox.Core;
 
@@ -106,7 +105,7 @@ public class Scanner
             case '"':
             {
                 string text = ExtractString();
-                return new String() { LineNumber = _lineNumber, LinePosition = linePosition, Text = text };
+                return new Tokens.Literals.String() { LineNumber = _lineNumber, LinePosition = linePosition, Text = text };
             }
             case char d when char.IsDigit(d):
             {
