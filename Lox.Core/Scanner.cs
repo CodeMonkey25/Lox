@@ -34,7 +34,7 @@ public class Scanner
             }
         }
 
-        tokens.Add(new EndOfFile(line));
+        tokens.Add(new EndOfFile() { LineNumber = line });
         
         return tokens;
     }
@@ -56,54 +56,61 @@ public class Scanner
                 line++;
                 break;
             case '(':
-                return new LeftParenthesis(line);
+                return new LeftParenthesis() { LineNumber = line };
             case ')':
-                return new RightParenthesis(line);
+                return new RightParenthesis() { LineNumber = line };
             case '{':
-                return new LeftBrace(line);
+                return new LeftBrace() { LineNumber = line };
             case '}':
-                return new RightBrace(line);
+                return new RightBrace() { LineNumber = line };
             case ',':
-                return new Comma(line);
+                return new Comma() { LineNumber = line };
             case '.':
-                return new Dot(line);
+                return new Dot() { LineNumber = line };
             case '-':
-                return new Minus(line);
+                return new Minus() { LineNumber = line };
             case '+':
-                return new Plus(line);
+                return new Plus() { LineNumber = line };
             case ';':
-                return new Semicolon(line);
+                return new Semicolon() { LineNumber = line };
             case '*':
-                return new Star(line);
+                return new Star() { LineNumber = line };
             case '!' when next == '=':
                 current++;
-                return new BangEqual(line);
+                return new BangEqual() { LineNumber = line };
             case '!':
-                return new Bang(line);
+                return new Bang() { LineNumber = line };
             case '=' when next == '=':
                 current++;
-                return new EqualEqual(line);
+                return new EqualEqual() { LineNumber = line };
             case '=':
-                return new Equal(line);
+                return new Equal() { LineNumber = line };
             case '<' when next == '=':
                 current++;
-                return new LessEqual(line);
+                return new LessEqual() { LineNumber = line };
             case '<':
-                return new Less(line);
+                return new Less() { LineNumber = line };
             case '>' when next == '=':
                 current++;
-                return new GreaterEqual(line);
+                return new GreaterEqual() { LineNumber = line };
             case '>':
-                return new Greater(line);
+                return new Greater() { LineNumber = line };
             case '/' when next == '/':
                 while (PeekFirstCharacter() != '\n' && !IsAtEnd()) ConsumeFirstCharacter();
                 break;
             case '/':
-                return new Slash(line);
+                return new Slash() { LineNumber = line };
             case '"':
-                return new String(line, ExtractString());
+            {
+                string text = ExtractString();
+                return new String() { LineNumber = line, Text = text };
+            }
             case char d when char.IsDigit(d):
-                return new Number(line, ExtractNumber());
+            {
+                string text = ExtractNumber();
+                double number = double.Parse(text);
+                return new Number() { LineNumber = line, Text = text, Value = number };
+            }
             case char a when char.IsLetter(a) || a == '_':
                 return BuildKeywordOrIdentifier(ExtractIdentifier());
             default:
@@ -166,39 +173,39 @@ public class Scanner
         switch (identifier.ToUpper())
         {
             case "AND":
-                return new And(line);
+                return new And() { LineNumber = line };
             case "CLASS":
-                return new Class(line);
+                return new Class() { LineNumber = line };
             case "ELSE":
-                return new Else(line);
+                return new Else() { LineNumber = line };
             case "FALSE":
-                return new False(line);
+                return new False() { LineNumber = line };
             case "FOR":
-                return new For(line);
+                return new For() { LineNumber = line };
             case "FUN":
-                return new Fun(line);
+                return new Fun() { LineNumber = line };
             case "IF":
-                return new If(line);
+                return new If() { LineNumber = line };
             case "NIL":
-                return new Nil(line);
+                return new Nil() { LineNumber = line };
             case "OR":
-                return new Or(line);
+                return new Or() { LineNumber = line };
             case "PRINT":
-                return new Print(line);
+                return new Print() { LineNumber = line };
             case "RETURN":
-                return new Return(line);
+                return new Return() { LineNumber = line };
             case "SUPER":
-                return new Super(line);
+                return new Super() { LineNumber = line };
             case "THIS":
-                return new This(line);
+                return new This() { LineNumber = line };
             case "TRUE":
-                return new True(line);
+                return new True() { LineNumber = line };
             case "VAR":
-                return new Var(line);
+                return new Var() { LineNumber = line };
             case "WHILE":
-                return new While(line);
+                return new While() { LineNumber = line };
             default:
-                return new Identifier(line, identifier);
+                return new Identifier() { LineNumber = line, Text = identifier };
         }
     }
 }
