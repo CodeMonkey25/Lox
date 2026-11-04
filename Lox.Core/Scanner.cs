@@ -11,38 +11,40 @@ namespace Lox.Core;
 public class Scanner
 {
     private readonly string _text;
-    private readonly Action<string> _errors;
-    private int start = 0;
-    private int current = 0;
-    private int line = 1;
+    private readonly Action<string> _logError;
+    private int _start = 0;
+    private int _current = 0;
+    private int _lineNumber = 1;
+    private int _linePosition = 0;
 
-    public Scanner(string text, Action<string> errors)
+    public Scanner(string text, Action<string> logError)
     {
         _text = text;
-        _errors = errors;
+        _logError = logError;
     }
     
     public List<Token> ScanTokens()
     {
         List<Token> tokens = [];
         while (!IsAtEnd()) {
-            // We are at the beginning of the next lexeme.
-            start = current;
+            // We are at the beginning of the next token
+            _start = _current;
             Token? token = ScanToken();
             if (token != null) {
                 tokens.Add(token);
             }
         }
 
-        tokens.Add(new EndOfFile() { LineNumber = line });
+        tokens.Add(new EndOfFile() { LineNumber = _lineNumber, LinePosition = _current - _linePosition + 1 });
         
         return tokens;
     }
     
-    private bool IsAtEnd() => current >= _text.Length;
+    private bool IsAtEnd() => _current >= _text.Length;
     
     private Token? ScanToken() 
     {
+        int linePosition = _current - _linePosition + 1;
         char c = ConsumeFirstCharacter();
         char next = PeekFirstCharacter();
         switch (c) 
@@ -53,89 +55,94 @@ public class Scanner
                 // Ignore whitespace.
                 break;
             case '\n':
-                line++;
+                _lineNumber++;
+                _linePosition = _current;
                 break;
             case '(':
-                return new LeftParenthesis() { LineNumber = line };
+                return new LeftParenthesis() { LineNumber = _lineNumber, LinePosition = linePosition };
             case ')':
-                return new RightParenthesis() { LineNumber = line };
+                return new RightParenthesis() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '{':
-                return new LeftBrace() { LineNumber = line };
+                return new LeftBrace() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '}':
-                return new RightBrace() { LineNumber = line };
+                return new RightBrace() { LineNumber = _lineNumber, LinePosition = linePosition };
             case ',':
-                return new Comma() { LineNumber = line };
+                return new Comma() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '.':
-                return new Dot() { LineNumber = line };
+                return new Dot() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '-':
-                return new Minus() { LineNumber = line };
+                return new Minus() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '+':
-                return new Plus() { LineNumber = line };
+                return new Plus() { LineNumber = _lineNumber, LinePosition = linePosition };
             case ';':
-                return new Semicolon() { LineNumber = line };
+                return new Semicolon() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '*':
-                return new Star() { LineNumber = line };
+                return new Star() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '!' when next == '=':
-                current++;
-                return new BangEqual() { LineNumber = line };
+                _current++;
+                return new BangEqual() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '!':
-                return new Bang() { LineNumber = line };
+                return new Bang() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '=' when next == '=':
-                current++;
-                return new EqualEqual() { LineNumber = line };
+                _current++;
+                return new EqualEqual() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '=':
-                return new Equal() { LineNumber = line };
+                return new Equal() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '<' when next == '=':
-                current++;
-                return new LessEqual() { LineNumber = line };
+                _current++;
+                return new LessEqual() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '<':
-                return new Less() { LineNumber = line };
+                return new Less() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '>' when next == '=':
-                current++;
-                return new GreaterEqual() { LineNumber = line };
+                _current++;
+                return new GreaterEqual() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '>':
-                return new Greater() { LineNumber = line };
+                return new Greater() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '/' when next == '/':
                 while (PeekFirstCharacter() != '\n' && !IsAtEnd()) ConsumeFirstCharacter();
                 break;
             case '/':
-                return new Slash() { LineNumber = line };
+                return new Slash() { LineNumber = _lineNumber, LinePosition = linePosition };
             case '"':
             {
                 string text = ExtractString();
-                return new String() { LineNumber = line, Text = text };
+                return new String() { LineNumber = _lineNumber, LinePosition = linePosition, Text = text };
             }
             case char d when char.IsDigit(d):
             {
                 string text = ExtractNumber();
                 double number = double.Parse(text);
-                return new Number() { LineNumber = line, Text = text, Value = number };
+                return new Number() { LineNumber = _lineNumber, LinePosition = linePosition, Text = text, Value = number };
             }
             case char a when char.IsLetter(a) || a == '_':
-                return BuildKeywordOrIdentifier(ExtractIdentifier());
+                return BuildKeywordOrIdentifier(ExtractIdentifier(), linePosition);
             default:
-                _errors($"{line}: Unexpected character '{c}'.");
+                _logError($"{_lineNumber}:{linePosition} - Unexpected character '{c}'.");
                 break;
         }
         
         return null;
     }
 
-    private char ConsumeFirstCharacter() => _text[current++];
+    private char ConsumeFirstCharacter() => _text[_current++];
     
-    private char PeekFirstCharacter() => IsAtEnd() ? '\0' : _text[current];
+    private char PeekFirstCharacter() => IsAtEnd() ? '\0' : _text[_current];
     
-    private char PeekSecondCharacter() => current + 1 >= _text.Length ? '\0' : _text[current + 1];
+    private char PeekSecondCharacter() => _current + 1 >= _text.Length ? '\0' : _text[_current + 1];
 
     private string ExtractString() 
     {
         while (PeekFirstCharacter() != '"' && !IsAtEnd()) {
-            if (PeekFirstCharacter() == '\n') line++;
+            if (PeekFirstCharacter() == '\n')
+            {
+                _lineNumber++;
+                _linePosition = _current;
+            }
             ConsumeFirstCharacter();
         }
 
         if (IsAtEnd()) {
-            _errors($"{line}: Unterminated string.");
+            _logError($"{_lineNumber}: Unterminated string.");
             return "";
         }
 
@@ -143,7 +150,7 @@ public class Scanner
         ConsumeFirstCharacter();
 
         // Trim the surrounding quotes.
-        return _text.Substring(start + 1, current - start - 2);
+        return _text.Substring(_start + 1, _current - _start - 2);
     }
 
     private string ExtractNumber() 
@@ -158,54 +165,54 @@ public class Scanner
             while (char.IsDigit(PeekFirstCharacter())) ConsumeFirstCharacter();
         }
 
-        return _text.Substring(start, current - start);
+        return _text.Substring(_start, _current - _start);
     }
     
     private string ExtractIdentifier() 
     {
         while (char.IsLetterOrDigit(PeekFirstCharacter()) || PeekFirstCharacter() == '_') ConsumeFirstCharacter();
 
-        return _text.Substring(start, current - start);
+        return _text.Substring(_start, _current - _start);
     }
 
-    private Token BuildKeywordOrIdentifier(string identifier)
+    private Token BuildKeywordOrIdentifier(string identifier, int linePosition)
     {
         switch (identifier.ToUpper())
         {
             case "AND":
-                return new And() { LineNumber = line };
+                return new And() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "CLASS":
-                return new Class() { LineNumber = line };
+                return new Class() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "ELSE":
-                return new Else() { LineNumber = line };
+                return new Else() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "FALSE":
-                return new False() { LineNumber = line };
+                return new False() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "FOR":
-                return new For() { LineNumber = line };
+                return new For() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "FUN":
-                return new Fun() { LineNumber = line };
+                return new Fun() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "IF":
-                return new If() { LineNumber = line };
+                return new If() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "NIL":
-                return new Nil() { LineNumber = line };
+                return new Nil() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "OR":
-                return new Or() { LineNumber = line };
+                return new Or() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "PRINT":
-                return new Print() { LineNumber = line };
+                return new Print() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "RETURN":
-                return new Return() { LineNumber = line };
+                return new Return() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "SUPER":
-                return new Super() { LineNumber = line };
+                return new Super() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "THIS":
-                return new This() { LineNumber = line };
+                return new This() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "TRUE":
-                return new True() { LineNumber = line };
+                return new True() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "VAR":
-                return new Var() { LineNumber = line };
+                return new Var() { LineNumber = _lineNumber, LinePosition = linePosition };
             case "WHILE":
-                return new While() { LineNumber = line };
+                return new While() { LineNumber = _lineNumber, LinePosition = linePosition };
             default:
-                return new Identifier() { LineNumber = line, Text = identifier };
+                return new Identifier() { LineNumber = _lineNumber, LinePosition = linePosition, Text = identifier };
         }
     }
 }
