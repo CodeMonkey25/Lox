@@ -12,10 +12,10 @@ public class Scanner
 {
     private readonly string _text;
     private readonly Action<string> _logError;
-    private int _start = 0;
+    private int _tokenStart = 0;
     private int _current = 0;
     private int _lineNumber = 1;
-    private int _linePosition = 0;
+    private int _lineStart = 0;
 
     public Scanner(string text, Action<string> logError)
     {
@@ -28,14 +28,14 @@ public class Scanner
         List<Token> tokens = [];
         while (!IsAtEnd()) {
             // We are at the beginning of the next token
-            _start = _current;
+            _tokenStart = _current;
             Token? token = ScanToken();
             if (token != null) {
                 tokens.Add(token);
             }
         }
 
-        tokens.Add(new EndOfFile() { LineNumber = _lineNumber, LinePosition = _current - _linePosition + 1 });
+        tokens.Add(new EndOfFile() { LineNumber = _lineNumber, LinePosition = _current - _lineStart + 1 });
         
         return tokens;
     }
@@ -44,7 +44,7 @@ public class Scanner
     
     private Token? ScanToken() 
     {
-        int linePosition = _current - _linePosition + 1;
+        int linePosition = _current - _lineStart + 1;
         char c = ConsumeFirstCharacter();
         char next = PeekFirstCharacter();
         switch (c) 
@@ -56,7 +56,7 @@ public class Scanner
                 break;
             case '\n':
                 _lineNumber++;
-                _linePosition = _current;
+                _lineStart = _current;
                 break;
             case '(':
                 return new LeftParenthesis() { LineNumber = _lineNumber, LinePosition = linePosition };
@@ -136,7 +136,7 @@ public class Scanner
             if (PeekFirstCharacter() == '\n')
             {
                 _lineNumber++;
-                _linePosition = _current;
+                _lineStart = _current;
             }
             ConsumeFirstCharacter();
         }
@@ -150,7 +150,7 @@ public class Scanner
         ConsumeFirstCharacter();
 
         // Trim the surrounding quotes.
-        return _text.Substring(_start + 1, _current - _start - 2);
+        return _text.Substring(_tokenStart + 1, _current - _tokenStart - 2);
     }
 
     private string ExtractNumber() 
@@ -165,14 +165,14 @@ public class Scanner
             while (char.IsDigit(PeekFirstCharacter())) ConsumeFirstCharacter();
         }
 
-        return _text.Substring(_start, _current - _start);
+        return _text.Substring(_tokenStart, _current - _tokenStart);
     }
     
     private string ExtractIdentifier() 
     {
         while (char.IsLetterOrDigit(PeekFirstCharacter()) || PeekFirstCharacter() == '_') ConsumeFirstCharacter();
 
-        return _text.Substring(_start, _current - _start);
+        return _text.Substring(_tokenStart, _current - _tokenStart);
     }
 
     private Token BuildKeywordOrIdentifier(string identifier, int linePosition)
