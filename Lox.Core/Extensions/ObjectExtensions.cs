@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Lox.Core.Tokens;
 
 namespace Lox.Core.Extensions;
 
@@ -9,7 +10,45 @@ public static class ObjectExtensions
     public static string SerializeJson<T>(this T obj)
     {
         if (obj == null) return string.Empty;
-        JsonSerializerOptions options = new() { WriteIndented = true, };
+        JsonSerializerOptions options = new() { WriteIndented = true,  };
+        options.Converters.Add(new PolymorphicJsonConverter<Token>());
         return JsonSerializer.Serialize(obj, options);
+    }
+    
+    public static string SerializeYaml<T>(this T obj)
+    {
+        if (obj == null) return string.Empty;
+
+        return new YamlDotNet.Serialization.SerializerBuilder()
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
+            .Build()
+            .Serialize(obj);
+    }
+
+    public static string SerializeXML<T>(this T obj)
+    {
+        if (obj == null) return string.Empty;
+
+        System.Xml.XmlWriterSettings settings = new()
+        {
+            Indent = true,
+            //IndentChars = "  ",
+            NewLineChars = System.Environment.NewLine,
+            NewLineHandling = System.Xml.NewLineHandling.Replace,
+            //OmitXmlDeclaration = true,
+            //NewLineOnAttributes = true,
+            //Encoding = Encoding.Latin1,
+        };
+
+        System.Text.StringBuilder sb = new();
+        //using (MemoryStream stream = new MemoryStream())
+        //using (XmlWriter writer = XmlWriter.Create(stream, settings))
+        using (System.Xml.XmlWriter writer = System.Xml.XmlWriter.Create(sb, settings))
+        {
+            System.Xml.Serialization.XmlSerializer xmlserializer = new(obj.GetType());
+            xmlserializer.Serialize(writer, obj);
+            return sb.ToString();
+            //return settings.Encoding.GetString(stream.ToArray());
+        }
     }
 }

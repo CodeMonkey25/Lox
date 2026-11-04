@@ -20,7 +20,7 @@ public class Engine
         List<Token> tokens = scanner.ScanTokens();
 
         
-        errors.Add("");
+        if (errors.Any()) errors.Add("");
         errors.Add(tokens.Dump());
         return string.Join("\n", errors);
     }
