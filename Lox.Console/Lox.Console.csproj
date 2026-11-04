@@ -11,8 +11,4 @@
       <ProjectReference Include="..\Lox.Core\Lox.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="YamlDotNet" Version="18.1.0" />
-    </ItemGroup>
-
 </Project>
