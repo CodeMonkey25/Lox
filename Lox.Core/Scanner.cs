@@ -119,6 +119,25 @@ public class Scanner
             case '/' when next == '/':
                 while (PeekFirstCharacter() != '\n' && !IsAtEnd()) ConsumeFirstCharacter();
                 break;
+            case '/' when next == '*':
+                ConsumeFirstCharacter();
+                while (!(PeekFirstCharacter() == '*' && PeekSecondCharacter() == '/'))
+                {
+                    if (IsAtEnd())
+                    {
+                        _logError($"{_lineNumber}:{linePosition} - Unterminated comment.");
+                        break;
+                    }
+
+                    if (ConsumeFirstCharacter() == '\n')
+                    {
+                        _lineNumber++;
+                        _lineStart = _current;
+                    }
+                }
+                if (!IsAtEnd()) ConsumeFirstCharacter();
+                if (!IsAtEnd()) ConsumeFirstCharacter();
+                break;
             case '/':
                 token = new Slash();
                 break;
