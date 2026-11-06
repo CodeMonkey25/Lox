@@ -147,14 +147,14 @@ public class Scanner
                 token = new Tokens.Literals.String() { Text = text };
                 break;
             }
-            case char d when char.IsDigit(d):
+            case var _ when char.IsDigit(c):
             {
                 string text = ExtractNumber();
                 double number = double.Parse(text);
                 token = new Number() { Text = text, Value = number };
                 break;
             }
-            case char a when char.IsLetter(a) || a == '_':
+            case var _ when char.IsLetter(c) || c == '_':
                 token = BuildKeywordOrIdentifier(ExtractIdentifier());
                 break;
             default:
